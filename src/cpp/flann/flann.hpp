@@ -367,6 +367,19 @@ public:
     	return nnIndex_->radiusSearch(queries, indices, dists, radius, params);
     }
 
+    // FLANN modification (incredible dirty crawling to get this pointer)
+    KMeansIndex<L2<int> > * get_index_ptr_int(){
+        return (KMeansIndex<L2<int> > *) nnIndex_;
+    }
+
+    KMeansIndex<L2<float> > * get_index_ptr_float(){
+        return (KMeansIndex<L2<float> > *) nnIndex_;
+    }
+
+    KMeansIndex<L2<double> > * get_index_ptr_double(){
+        return (KMeansIndex<L2<double> > *) nnIndex_;
+    }
+
 private:
     IndexType* load_saved_index(const Matrix<ElementType>& dataset, const std::string& filename, Distance distance)
     {

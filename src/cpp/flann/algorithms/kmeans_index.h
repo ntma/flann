@@ -322,6 +322,139 @@ public:
         return clusterCount;
     }
 
+    /**
+      * For the data points used to construct the tree, compute the corresponding cluster
+      * centers on level L of the tree (level 0 is the root node).
+      * Params:
+      *    level_L = the level L
+      *    centerIds = array in which we store the ids of the cluster centers, starting with id 0
+      *                the size of the array has to correspond to the number of datapoints used
+      *                to construct the hkmeans tree.
+      * Return: The maximum level of the tree
+      *
+      * Written by Torsten Sattler.
+      */
+    int getClusterCentersOnLevelL( int level_L, int* &clusterIds ) const
+    {
+
+        ////
+        // first determine the maximum level of the tree
+        // we do so by traversing the tree (in breadth first order
+        int max_level = -1;
+
+        //std::list< KMeansNodePtr > fifo;
+        std::list<NodePtr> fifo;
+        fifo.clear();
+
+        if( root_ == NULL )
+            return -2;
+
+        fifo.push_back( root_ );
+
+        while (!fifo.empty()) {
+            NodePtr node = fifo.front();
+
+            if( node != 0 )
+            {
+
+                max_level = std::max( max_level, node->level );
+
+                if( node->childs.size() > 0 ) {
+
+                    for (int i=0; i<branching_; ++i) {
+                        fifo.push_back(node->childs[i]);
+                    }
+                }
+            }
+
+            node = 0;
+
+            fifo.pop_front();
+        }
+
+
+
+        ////
+        // Some statistics
+        int nb_nodes = 1; // index 0 is the root
+        int mult = 1;
+        for( int i=1; i<max_level; ++i )
+        {
+            mult *= branching_;
+            nb_nodes += mult;
+        }
+        std::cout << " number nodes: " << nb_nodes << " for " << max_level << " levels and branching " << branching_ << std::endl;
+        int nb_nodes_before_L = 1;
+        mult = 1;
+        for( int i=1; i<level_L; ++i )
+        {
+            mult *= branching_;
+            nb_nodes_before_L += mult;
+        }
+        std::cout << nb_nodes_before_L << " nodes before level " << level_L << ", with branching " << branching_ << std::endl;
+
+        ////
+        // now we need to compute the assignments of the indices stored in the nodes of the tree to the higher level L
+        // we do so by traversing the tree in breadth first search, than doing a search back using
+        // array indexing (i.e. the children of node with id i are at branching * i + 1 ... branching * i + branching
+        // the parent of node i is floor( (i-1) / branching )
+        std::list< std::pair< NodePtr, int > > fifo_ids;
+        fifo_ids.clear();
+
+        fifo_ids.push_back( std::make_pair< NodePtr, int >( root_, 0 ) );
+
+        while (!fifo_ids.empty()) {
+            std::pair< NodePtr, int > node;
+            node.first = fifo_ids.front().first;
+            node.second = fifo_ids.front().second;
+
+            if( node.first != 0 )
+            {
+                if( node.first->childs.size() > 0 ) {
+                    for (int i=0; i<branching_; ++i) {
+                        fifo_ids.push_back( std::make_pair< NodePtr, int >( node.first->childs[i], node.second * branching_ + i + 1 ) );
+                    }
+                }
+                else {
+                    // we are at a leaf, so we need to get the index of its parent at level L
+                    int id_of_parent_at_level_L = node.second;
+                    int current_level = node.first->level;
+
+                    while( current_level < level_L ) {
+                        id_of_parent_at_level_L = id_of_parent_at_level_L * branching_ + 1;
+                        current_level += 1;
+                    }
+
+                    while( current_level > level_L ) {
+                        id_of_parent_at_level_L = (int) floor( ( id_of_parent_at_level_L - 1) / branching_ );
+                        current_level -= 1;
+                    }
+
+                    // it might happen that the tree is not balanced and that we cannot descend to the desired level
+                    // in this case, when at level k, we assign the node on level k to the first node of its
+                    // subtree on level L
+                    if( current_level < level_L ) {
+                        id_of_parent_at_level_L = id_of_parent_at_level_L * branching_ + 1;
+                        current_level += 1;
+                    }
+
+                    id_of_parent_at_level_L -= nb_nodes_before_L;
+
+                    // now store this id for all indices in this leaf
+                    for( int i=0; i<node.first->size; ++i ) {
+                        clusterIds[ node.first->points[ i ].index ] = id_of_parent_at_level_L;
+                    }
+
+                }
+            }
+
+
+            fifo_ids.pop_front();
+        }
+
+        return max_level;
+    }
+
 protected:
     /**
      * Builds the index
@@ -341,7 +474,7 @@ protected:
 
         root_ = new(pool_) Node();
         computeNodeStatistics(root_, indices);
-        computeClustering(root_, &indices[0], (int)size_, branching_);
+        computeClustering(root_, &indices[0], (int)size_, branching_, 0);
     }
 
 private:
@@ -397,7 +530,7 @@ private:
         /**
          * Level
          */
-//        int level;
+        int level;
 
         ~Node()
         {
@@ -541,9 +674,10 @@ private:
      *
      * TODO: for 1-sized clusters don't store a cluster center (it's the same as the single cluster point)
      */
-    void computeClustering(NodePtr node, int* indices, int indices_length, int branching)
+    void computeClustering(NodePtr node, int* indices, int indices_length, int branching, int level)
     {
         node->size = indices_length;
+        node->level = level;
 
         if (indices_length < branching) {
             node->points.resize(indices_length);
@@ -705,7 +839,7 @@ private:
             node->childs[c]->radius = radiuses[c];
             node->childs[c]->pivot = centers[c];
             node->childs[c]->variance = variance;
-            computeClustering(node->childs[c],indices+start, end-start, branching);
+            computeClustering(node->childs[c],indices+start, end-start, branching, level+1);
             start=end;
         }
 
@@ -990,7 +1124,7 @@ private:
             }
             computeNodeStatistics(node, indices);
             if (indices.size()>=size_t(branching_)) {
-                computeClustering(node, &indices[0], indices.size(), branching_);
+                computeClustering(node, &indices[0], indices.size(), branching_, node->level); //TODO: verify this
             }
         }
         else {            

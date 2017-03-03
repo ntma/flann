@@ -595,6 +595,21 @@ FLANN_EXPORT int flann_compute_cluster_centers_int(int* dataset,
                                                    float* result,
                                                    struct FLANNParameters* flann_params);
 
+FLANN_EXPORT void flann_get_parents_at_level_L_int(int *dataset,
+                                                   int L,
+                                                   int* ids,
+                                                   int n_nodes);
+
+FLANN_EXPORT void flann_get_parents_at_level_L_float(float *dataset,
+                                                     int L,
+                                                     int* ids,
+                                                     int n_nodes);
+
+FLANN_EXPORT void flann_get_parents_at_level_L_double(double *dataset,
+                                                      int L,
+                                                      int* ids,
+                                                      int n_nodes);
+
 
 #ifdef __cplusplus
 }

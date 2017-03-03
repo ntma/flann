@@ -409,3 +409,27 @@ class FLANN(object):
     def __ensureRandomSeed(self, kwargs):
         if 'random_seed' not in kwargs:
             kwargs['random_seed'] = self.__rn_gen.randint(2 ** 30)
+
+    ###########################################################################################
+    # FLANN Modification
+
+    def get_parents_at_level_L_int(self, L, n_nodes):
+        ids = empty(n_nodes, dtype=int32)
+
+        nn = flann.get_parents_at_level_L[int32](self.__curindex, L, ids, n_nodes)
+
+        return nn, ids
+
+    def get_parents_at_level_L_float(self, L, n_nodes):
+        ids = empty(n_nodes, dtype=int32)
+
+        nn = flann.get_parents_at_level_L[float32](self.__curindex, L, ids, n_nodes)
+
+        return nn, ids
+
+    def get_parents_at_level_L_double(self, L, n_nodes):
+        ids = empty(n_nodes, dtype=int32)
+
+        nn = flann.get_parents_at_level_L[float64](self.__curindex, L, ids, n_nodes)
+
+        return nn, ids

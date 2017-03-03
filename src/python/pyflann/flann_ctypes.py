@@ -387,3 +387,37 @@ def ensure_2d_array(arr, flags, **kwargs):
     if len(arr.shape) == 1:
         arr = arr.reshape(-1, arr.size)
     return arr
+
+
+# FLANN modification
+flann.get_parents_at_level_L = {}
+eval(compile(r"""
+flannlib.flann_get_parents_at_level_L_int.restype = c_int
+flannlib.flann_get_parents_at_level_L_int.argtypes=[
+FLANN_INDEX,
+c_int,
+ndpointer(int32, ndim = 1, flags='aligned, c_contiguous, writeable'),
+c_int]
+flann.get_parents_at_level_L[int32] = flannlib.flann_get_parents_at_level_L_int
+""", "<string>", "exec"))
+
+flann.get_parents_at_level_L = {}
+eval(compile(r"""
+flannlib.flann_get_parents_at_level_L_float.restype = c_int
+flannlib.flann_get_parents_at_level_L_float.argtypes=[
+FLANN_INDEX,
+c_int,
+ndpointer(int32, ndim = 1, flags='aligned, c_contiguous, writeable'),
+c_int]
+flann.get_parents_at_level_L[float32] = flannlib.flann_get_parents_at_level_L_float
+""", "<string>", "exec"))
+
+# double is an exception
+flannlib.flann_get_parents_at_level_L_double.restype = c_int
+flannlib.flann_get_parents_at_level_L_double.argtypes = [
+    FLANN_INDEX,
+    c_int,
+    ndpointer(int32, ndim=1, flags='aligned, c_contiguous, writeable'),
+    c_int
+]
+flann.get_parents_at_level_L[float64] = flannlib.flann_get_parents_at_level_L_double

@@ -1318,3 +1318,35 @@ int flann_compute_cluster_centers_int(int* dataset, int rows, int cols, int clus
     return _flann_compute_cluster_centers(dataset, rows, cols, clusters, result, flann_params);
 }
 
+// FLANN modification to get node parents at level L
+
+void flann_get_parents_at_level_L_int(int *dataset, int L, int* ids, int n_nodes)
+{
+    KMeansIndex<L2<int> >* kmeansindex = ((Index<L2<int> >*) dataset)->get_index_ptr_int();
+
+    for( uint32_t i=0; i < n_nodes; ++i )
+        ids[i] = -1;
+
+    kmeansindex->getClusterCentersOnLevelL(L, ids);
+}
+
+void flann_get_parents_at_level_L_float(float *dataset, int L, int* ids, int n_nodes)
+{
+    KMeansIndex<L2<float> >* kmeansindex = ((Index<L2<float> >*) dataset)->get_index_ptr_float();
+
+    for( uint32_t i=0; i < n_nodes; ++i )
+        ids[i] = -1;
+
+    kmeansindex->getClusterCentersOnLevelL(L, ids);
+}
+
+void flann_get_parents_at_level_L_double(double *dataset, int L, int* ids, int n_nodes)
+{
+    KMeansIndex<L2<double> >* kmeansindex = ((Index<L2<double> >*) dataset)->get_index_ptr_double();
+
+    for( uint32_t i=0; i < n_nodes; ++i )
+        ids[i] = -1;
+
+    kmeansindex->getClusterCentersOnLevelL(L, ids);
+}
+
